@@ -14,11 +14,13 @@
 
 #include <stdexcept>
 
+#include "zcpointer.h"
+
 namespace zc {
 namespace internal {
 
 void RaiseUseAfterFree(const char* error) {
-  throw std::logic_error(error);
+  throw zc::UseAfterFreeError(error);
 }
 
 }  // namespace internal

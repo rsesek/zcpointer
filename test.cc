@@ -66,6 +66,26 @@ void TestPtr() {
   ref->DoThing();
 }
 
+#define TEST_FUNC(fn) { #fn , Test##fn }
+
 int main() {
-  TestPtr();
+  struct {
+    const char* name;
+    void (*test)();
+  } kTests[] = {
+    TEST_FUNC(Reset),
+    TEST_FUNC(Move),
+    TEST_FUNC(Ptr),
+  };
+
+  for (const auto& test : kTests) {
+    std::cout << "=== BEGIN " << test.name << " ===" << std::endl;
+    try {
+      test.test();
+      std::cout << "=== FAIL " << test.name
+                << ": Did not receive UseAfterFreeException ===" << std::endl;
+    } catch (zc::UseAfterFreeError) {
+      std::cout << "=== PASS " << test.name << " ===" << std::endl;
+    }
+  }
 }
