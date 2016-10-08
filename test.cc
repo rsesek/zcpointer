@@ -14,8 +14,6 @@
 
 #include <iostream>
 
-#define ZCPOINTER_TRACK_REFS 1
-
 #include "zcpointer.h"
 
 class C {
