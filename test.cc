@@ -38,7 +38,10 @@ void TestReset() {
 template <typename T>
 void TestUnwrap() {
   zc::owned<T> t(new T());
-  T* unwrap = t.get();
+  //T* unwrap = t.get();
+
+  zc::ref<T> ref = t.get();
+  T* unwrap2 = ref;
 }
 
 void TestMove() {
@@ -52,6 +55,17 @@ void TestMove() {
   owned->DoThing();
 }
 
+void PtrHelper(zc::ref<C>* out) {
+  zc::owned<C> c(new C());
+  *out = c.get();
+}
+
+void TestPtr() {
+  zc::ref<C> ref;
+  PtrHelper(&ref);
+  ref->DoThing();
+}
+
 int main() {
-  TestMove();
+  TestPtr();
 }

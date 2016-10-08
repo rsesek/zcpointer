@@ -86,23 +86,29 @@ class owned : public std::unique_ptr<T, internal::OwnedPtrDeleter<T>> {
 template <typename T>
 class ref {
  public:
-  explicit ref(owned<T>& o) : ptr_(o.GetRawPointer()), deleter_(o.get_deleter()) {
-    deleter_.AddRef(this);
+  ref() : ptr_(nullptr), deleter_(nullptr), deleted_(true) {}
+
+  explicit ref(owned<T>& o) : ptr_(o.GetRawPointer()), deleter_(&o.get_deleter()) {
+    deleter_->AddRef(this);
   }
 
-  ref(const ref<T>& o) : ptr_(o.ptr_), deleter_(o.deleter_), deleted_(o.deleted_) {
+  ref(const ref<T>& o) {
+    *this = o;
+  }
+
+  ref<T>& operator=(const ref<T>& o) {
+    ptr_ = o.ptr_;
+    deleter_ = o.deleter_;
+    deleted_ = o.deleted_;
     if (!deleted_) {
-      deleter_.AddRef(this);
+      deleter_->AddRef(this);
     }
-  }
-
-  ref<T>& operator=(ref<T> o) {
-    return ref(o);
+    return *this;
   }
 
   ~ref() {
     MarkDeleted();
-    deleter_.RemoveRef(this);
+    deleter_->RemoveRef(this);
   }
 
   T* operator->() const {
@@ -125,7 +131,7 @@ class ref {
   }
 
   T* ptr_;
-  internal::OwnedPtrDeleter<T>& deleter_;
+  internal::OwnedPtrDeleter<T>* deleter_;
   bool deleted_ = false;
 };
 
