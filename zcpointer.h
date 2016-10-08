@@ -71,13 +71,6 @@ class owned : public std::unique_ptr<T, internal::OwnedPtrDeleter<T>> {
     return ref<T>(*this);
   }
 
- protected:
-  friend class ref<T>;
-
-  T* GetRawPointer() const {
-    return get();
-  }
-
  private:
   T* get() const {
     return this->std::unique_ptr<T, Deleter>::get();
@@ -112,7 +105,7 @@ class ref {
 
   T* operator->() const {
     CheckDeleted();
-    return ptr_->GetRawPointer();
+    return ptr_->operator->();
   }
 
  protected:
