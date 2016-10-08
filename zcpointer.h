@@ -99,8 +99,10 @@ class ref {
   }
 
   ~ref() {
-    ptr_->get_deleter().RemoveRef(this);
-    MarkDeleted();
+    if (!IsDeleted()) {
+      ptr_->get_deleter().RemoveRef(this);
+      MarkDeleted();
+    }
   }
 
   T* operator->() const {
