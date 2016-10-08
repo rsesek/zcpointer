@@ -14,7 +14,6 @@
 
 #include <memory>
 #include <forward_list>
-#include <stdexcept>
 
 namespace zc {
 
@@ -55,9 +54,9 @@ class OwnedPtrDeleter {
   std::forward_list<ref<T>*> refs_;
 };
 
-}  // namespace internal
+void RaiseUseAfterFree(const char* error) __attribute__((noreturn));
 
-using UseAfterFreeException = std::logic_error;
+}  // namespace internal
 
 template <typename T>
 class owned : public std::unique_ptr<T, internal::OwnedPtrDeleter<T>> {
@@ -121,7 +120,7 @@ class ref {
  private:
   void CheckDeleted() const {
     if (deleted_) {
-      throw UseAfterFreeException("attempt to access deleted pointer");
+      internal::RaiseUseAfterFree("attempt to access deleted pointer");
     }
   }
 
