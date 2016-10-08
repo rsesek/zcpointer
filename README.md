@@ -21,3 +21,10 @@ can be poisoned against future use.
 
 When the tracking option is disabled and compiler optimization is turned up, the cost of using
 zcpointer is none, compared to using a normal `unique_ptr`.
+
+## Suggested Usage
+
+When using zcpointer, it is recommended to compile with `ZCPOINTER_TRACK_REFS` for debug builds, or
+if your project provides a hardened compilation mode (such as `_FORTIFY_SOURCE`). For production
+builds, turn off reference tracking to eliminate the overhead of zcpointer. Tests should be run
+using `ZCPOINTER_TRACK_REFS=1` to catch errors during development.
