@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <limits>
 #include <memory>
 #include <forward_list>
 
@@ -86,10 +87,10 @@ class owned : public std::unique_ptr<T, internal::OwnedPtrDeleter<T>> {
 template <typename T>
 class ref {
  public:
-  ref() : ptr_(nullptr), deleter_(nullptr), deleted_(true) {}
+  ref() : ptr_(DeletedSentinel()) {}
 
-  explicit ref(owned<T>& o) : ptr_(o.GetRawPointer()), deleter_(&o.get_deleter()) {
-    deleter_->AddRef(this);
+  explicit ref(owned<T>& o) : ptr_(&o) {
+    ptr_->get_deleter().AddRef(this);
   }
 
   ref(const ref<T>& o) {
@@ -98,41 +99,45 @@ class ref {
 
   ref<T>& operator=(const ref<T>& o) {
     ptr_ = o.ptr_;
-    deleter_ = o.deleter_;
-    deleted_ = o.deleted_;
-    if (!deleted_) {
-      deleter_->AddRef(this);
+    if (!IsDeleted()) {
+      ptr_->get_deleter().AddRef(this);
     }
     return *this;
   }
 
   ~ref() {
+    ptr_->get_deleter().RemoveRef(this);
     MarkDeleted();
-    deleter_->RemoveRef(this);
   }
 
   T* operator->() const {
     CheckDeleted();
-    return ptr_;
+    return ptr_->GetRawPointer();
   }
 
  protected:
   friend class internal::OwnedPtrDeleter<T>;
 
   void MarkDeleted() {
-    deleted_ = true;
+    ptr_ = DeletedSentinel();
   }
 
  private:
   void CheckDeleted() const {
-    if (deleted_) {
+    if (IsDeleted()) {
       internal::RaiseUseAfterFree("attempt to access deleted pointer");
     }
   }
 
-  T* ptr_;
-  internal::OwnedPtrDeleter<T>* deleter_;
-  bool deleted_ = false;
+  bool IsDeleted() const {
+    return ptr_ == DeletedSentinel();
+  }
+
+  inline static owned<T>* DeletedSentinel() {
+    return reinterpret_cast<owned<T>*>(std::numeric_limits<uintptr_t>::max());
+  }
+
+  owned<T>* ptr_;
 };
 
 #else
