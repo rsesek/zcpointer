@@ -71,6 +71,55 @@ void TestPtr() {
   EXPECT_UAF(ref->DoThing());
 }
 
+void TestEquality() {
+  zc::owned<C> a(new C());
+  zc::owned<C> b(new C());
+
+  EXPECT(a == a);
+  EXPECT(b == b);
+  EXPECT(a != b);
+
+  zc::ref<C> ra = a.get();
+  zc::ref<C> rb = b.get();
+
+  EXPECT(ra == ra);
+  EXPECT(ra == a.get());
+  EXPECT(rb == rb);
+  EXPECT(rb == b.get());
+
+  EXPECT(rb != ra);
+
+  zc::ref<C> r = a.get();
+  EXPECT(r == ra);
+  EXPECT(r == a.get());
+
+  zc::owned<C> c;
+  zc::owned<C> c2;
+  zc::ref<C> rc = nullptr;
+
+  EXPECT(rc == c.get());
+  EXPECT(c == nullptr);
+  EXPECT(rc == nullptr);
+  EXPECT(a != c);
+  EXPECT(c == c2);
+}
+
+void TestNulls() {
+  zc::owned<C> l;
+  zc::owned<C> r;
+
+  zc::ref<C> rl = l.get();
+  zc::ref<C> rr = r.get();
+
+  r = std::move(l);
+  rl = rr;
+
+  EXPECT(l == nullptr);
+  EXPECT(r == nullptr);
+  EXPECT(rl == nullptr);
+  EXPECT(rr == nullptr);
+}
+
 #define TEST_FUNC(fn) { #fn , Test##fn }
 
 int main() {
@@ -81,6 +130,8 @@ int main() {
     TEST_FUNC(Reset),
     TEST_FUNC(Move),
     TEST_FUNC(Ptr),
+    TEST_FUNC(Equality),
+    TEST_FUNC(Nulls),
   };
 
   bool passed = true;

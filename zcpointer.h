@@ -39,6 +39,10 @@ class OwnedPtrDeleter {
   OwnedPtrDeleter(OwnedPtrDeleter&& other) : refs_(std::move(other.refs_)) {
   }
 
+  void operator=(const OwnedPtrDeleter& o) {
+    refs_ = o.refs_;
+  }
+
   void operator()(T* t) const {
     for (auto& ref : refs_) {
       ref->MarkDeleted();
@@ -86,34 +90,55 @@ class owned : public std::unique_ptr<T, internal::OwnedPtrDeleter<T>> {
 template <typename T>
 class ref {
  public:
-  ref() : ptr_(DeletedSentinel()) {}
+  ref() : ptr_(nullptr) {}
 
-  explicit ref(owned<T>& o) : ptr_(&o) {
-    ptr_->get_deleter().AddRef(this);
+  ref(std::nullptr_t) : ref() {}
+
+  explicit ref(owned<T>& o) : ptr_(nullptr) {
+    if (o != nullptr) {
+      ptr_ = &o;
+      ptr_->get_deleter().AddRef(this);
+    }
   }
 
-  ref(const ref<T>& o) {
-    *this = o;
+  ref(const ref<T>& r) {
+    *this = r;
   }
 
   ref<T>& operator=(const ref<T>& o) {
     ptr_ = o.ptr_;
-    if (!IsDeleted()) {
+    if (ptr_ != nullptr && !IsDeleted()) {
       ptr_->get_deleter().AddRef(this);
     }
     return *this;
   }
 
   ~ref() {
-    if (!IsDeleted()) {
+    if (ptr_ != nullptr && !IsDeleted()) {
       ptr_->get_deleter().RemoveRef(this);
-      MarkDeleted();
     }
+    MarkDeleted();
   }
 
   T* operator->() const {
     CheckDeleted();
     return ptr_->operator->();
+  }
+
+  bool operator==(const ref<T>& r) const {
+    if (ptr_ == nullptr) {
+      return r.ptr_ == nullptr;
+    } else {
+      return ptr_ == r.ptr_ && *ptr_ == *r.ptr_;
+    }
+  }
+
+  bool operator==(std::nullptr_t) const {
+    return ptr_ == nullptr;
+  }
+
+  bool operator!=(const ref<T>& r) const {
+    return !(*this == r);
   }
 
  protected:
