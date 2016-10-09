@@ -18,21 +18,26 @@
 
 class C {
  public:
-  ~C() {
-    std::cout << "~C" << std::endl;
-  }
+  ~C() {}
 
-  void DoThing() {
-    std::cout << "DoThing" << std::endl;
-  }
+  void DoThing() {}
 };
+
+#define EXPECT(expr) do { if (!(expr)) { throw std::logic_error(#expr); } } while(0)
+
+#define EXPECT_UAF(expr) do { \
+    try { \
+      (expr); \
+      throw std::logic_error("Expected use-after-free: " #expr); \
+    } catch (zc::UseAfterFreeError) {} \
+  } while(0)
 
 void TestReset() {
   zc::owned<C> c(new C());
   zc::ref<C> owned = c.get();
   zc::ref<C> owned2 = owned;
   c.reset();
-  owned2->DoThing();
+  EXPECT_UAF(owned2->DoThing());
 }
 
 template <typename T>
@@ -52,7 +57,7 @@ void TestMove() {
   owned->DoThing();
 
   c2.reset();
-  owned->DoThing();
+  EXPECT_UAF(owned->DoThing());
 }
 
 void PtrHelper(zc::ref<C>* out) {
@@ -63,7 +68,7 @@ void PtrHelper(zc::ref<C>* out) {
 void TestPtr() {
   zc::ref<C> ref;
   PtrHelper(&ref);
-  ref->DoThing();
+  EXPECT_UAF(ref->DoThing());
 }
 
 #define TEST_FUNC(fn) { #fn , Test##fn }
@@ -78,14 +83,18 @@ int main() {
     TEST_FUNC(Ptr),
   };
 
+  bool passed = true;
   for (const auto& test : kTests) {
     std::cout << "=== BEGIN " << test.name << " ===" << std::endl;
     try {
       test.test();
-      std::cout << "=== FAIL " << test.name
-                << ": Did not receive UseAfterFreeException ===" << std::endl;
-    } catch (zc::UseAfterFreeError) {
       std::cout << "=== PASS " << test.name << " ===" << std::endl;
+    } catch (const std::logic_error& e) {
+      passed = false;
+      std::cout << "=== FAIL " << test.name
+                << ": Assertion failure: " << e.what() << " ===" << std::endl;
     }
   }
+
+  return passed ? 0 : 1;
 }
