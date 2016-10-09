@@ -26,12 +26,23 @@ class C {
 
 #define EXPECT(expr) do { if (!(expr)) { throw std::logic_error(#expr); } } while(0)
 
+#if defined(ZCPOINTER_TRACK_REFS) && ZCPOINTER_TRACK_REFS
+
 #define EXPECT_UAF(expr) do { \
     try { \
       (expr); \
       throw std::logic_error("Expected use-after-free: " #expr); \
     } catch (zc::UseAfterFreeError) {} \
   } while(0)
+
+#else
+
+#define EXPECT_UAF(expr) do { \
+    std::cout << ">>> ZCPOINTER_TRACK_REFS not enabled, cannot catch UAF" << std::endl; \
+    (expr); \
+  } while(0)
+
+#endif
 
 void TestReset() {
   zc::owned<C> c(new C());
@@ -164,10 +175,10 @@ int main() {
     std::cout << "=== BEGIN " << test.name << " ===" << std::endl;
     try {
       test.test();
-      std::cout << "=== PASS " << test.name << " ===" << std::endl;
+      std::cout << "+++ PASS " << test.name << " +++" << std::endl;
     } catch (const std::logic_error& e) {
       passed = false;
-      std::cout << "=== FAIL " << test.name
+      std::cout << "!!! FAIL " << test.name
                 << ": Assertion failure: " << e.what() << " ===" << std::endl;
     }
   }

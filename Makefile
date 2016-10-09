@@ -5,6 +5,10 @@ FILES := test.cc zcpointer.cc
 
 all: test-zc test-tr
 
+test: test-zc test-tr
+	./test-zc
+	./test-tr
+
 test-zc: $(FILES) zcpointer.h
 	$(CXX) $(CXXFLAGS) $(FILES) -o $@
 
