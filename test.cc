@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 
 #include "zcpointer.h"
@@ -24,14 +25,23 @@ class C {
   void DoThing() {}
 };
 
-#define EXPECT(expr) do { if (!(expr)) { throw std::logic_error(#expr); } } while(0)
+class TestFailure : public std::logic_error {
+ public:
+  using std::logic_error::logic_error;
+};
+
+#define STRING(x) QUOTE(x)
+#define QUOTE(x) #x
+#define AT_FILE_LINE " @ " __FILE__ ":" STRING(__LINE__)
+
+#define EXPECT(expr) do { if (!(expr)) { throw TestFailure(#expr AT_FILE_LINE); } } while(0)
 
 #if defined(ZCPOINTER_TRACK_REFS) && ZCPOINTER_TRACK_REFS
 
 #define EXPECT_UAF(expr) do { \
     try { \
       (expr); \
-      throw std::logic_error("Expected use-after-free: " #expr); \
+      throw TestFailure("Expected use-after-free: " #expr AT_FILE_LINE); \
     } catch (zc::UseAfterFreeError) {} \
   } while(0)
 
@@ -39,7 +49,11 @@ class C {
 
 #define EXPECT_UAF(expr) do { \
     std::cout << ">>> ZCPOINTER_TRACK_REFS not enabled, cannot catch UAF" << std::endl; \
-    (expr); \
+    try { \
+      (expr); \
+    } catch (std::logic_error& e) { \
+      std::cout << ">>> Caught error: " << typeid(e).name() << ": " << e.what() << std::endl; \
+    } \
   } while(0)
 
 #endif
@@ -176,7 +190,7 @@ int main() {
     try {
       test.test();
       std::cout << "+++ PASS " << test.name << " +++" << std::endl;
-    } catch (const std::logic_error& e) {
+    } catch (const TestFailure& e) {
       passed = false;
       std::cout << "!!! FAIL " << test.name
                 << ": Assertion failure: " << e.what() << " ===" << std::endl;
