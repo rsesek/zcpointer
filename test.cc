@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <iostream>
+#include <vector>
 
 #include "zcpointer.h"
 
@@ -120,6 +121,29 @@ void TestNulls() {
   EXPECT(rr == nullptr);
 }
 
+void TestVector() {
+  zc::owned<C> c;
+  std::vector<zc::ref<C>> vec{
+    c.get(),
+    c.get(),
+    c.get()
+  };
+
+  for (const auto& r : vec) {
+    EXPECT(r == c.get());
+  }
+
+  zc::ref<C> ref;
+  {
+    std::vector<zc::owned<C>> vec;
+    vec.push_back(std::move(zc::owned<C>(new C())));
+    vec.push_back(std::move(zc::owned<C>(new C())));
+    vec.push_back(std::move(zc::owned<C>(new C())));
+    ref = vec[1].get();
+  }
+  EXPECT_UAF(ref->DoThing());
+}
+
 #define TEST_FUNC(fn) { #fn , Test##fn }
 
 int main() {
@@ -132,6 +156,7 @@ int main() {
     TEST_FUNC(Ptr),
     TEST_FUNC(Equality),
     TEST_FUNC(Nulls),
+    TEST_FUNC(Vector),
   };
 
   bool passed = true;
