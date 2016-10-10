@@ -16,14 +16,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include "test_helpers.h"
 #include "zcpointer.h"
-
-class C {
- public:
-  ~C() {}
-
-  void DoThing() {}
-};
 
 class TestFailure : public std::logic_error {
  public:
@@ -169,6 +163,34 @@ void TestVector() {
   EXPECT_UAF(ref->DoThing());
 }
 
+void TestStack() {
+  zc::ref<C> rc;
+  {
+    zc::member<C> c;
+    rc = &c;
+    EXPECT(rc == &c);
+    c->DoThing();
+  }
+  EXPECT_UAF(rc->DoThing());
+}
+
+void TestMember() {
+  zc::ref<C> ref;
+  zc::ref<std::vector<C>> vec_ref;
+  {
+    X x("hello world");
+    ref = x.c();
+    vec_ref = x.vec_c();
+
+    vec_ref->push_back(C());
+    vec_ref->push_back(C());
+
+    vec_ref->at(1).DoThing();
+  }
+  EXPECT_UAF(ref->DoThing());
+  EXPECT_UAF(vec_ref->at(1).DoThing());
+}
+
 #define TEST_FUNC(fn) { #fn , Test##fn }
 
 int main() {
@@ -182,6 +204,8 @@ int main() {
     TEST_FUNC(Equality),
     TEST_FUNC(Nulls),
     TEST_FUNC(Vector),
+    TEST_FUNC(Stack),
+    TEST_FUNC(Member),
   };
 
   bool passed = true;

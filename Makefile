@@ -5,9 +5,9 @@ ifeq ($(OPTIMIZED),1)
 	CXXFLAGS += -O2
 endif
 
-FILES := test.cc zcpointer.cc
+FILES := test.cc test_helpers.cc zcpointer.cc
 
-DEPS := $(FILES) zcpointer.h Makefile
+DEPS := $(FILES) zcpointer.h test_helpers.h Makefile
 
 all: test-zc test-tr
 

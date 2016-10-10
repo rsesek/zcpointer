@@ -12,10 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef ZCPOINTER_ZCPOINTER_H_
+#define ZCPOINTER_ZCPOINTER_H_
+
 #include <limits>
 #include <memory>
 #include <forward_list>
 #include <stdexcept>
+#include <utility>
 
 namespace zc {
 
@@ -166,6 +170,30 @@ class ref {
   owned<T>* ptr_;
 };
 
+template <typename T>
+class member {
+ public:
+  template <typename... Args>
+  explicit member(Args&&... args)
+    : t_(new T(std::forward<Args>(args)...)) {
+  }
+
+  ref<T> operator&() {
+    return t_.get();
+  }
+
+  T* operator->() {
+    return t_.operator->();
+  }
+
+  const T* operator->() const {
+    return t_.operator->();
+  }
+
+ private:
+  owned<T> t_;
+};
+
 #else
 
 template <typename T>
@@ -174,6 +202,22 @@ using owned = std::unique_ptr<T>;
 template <typename T>
 using ref = T*;
 
+template <typename T>
+class member : public T {
+ public:
+  using T::T;
+
+  T* operator->() {
+    return this;
+  }
+
+  const T* operator->() const {
+    return this;
+  }
+};
+
 #endif
 
 }  // namespace zc
+
+#endif  // ZCPOINTER_ZCPOINTER_H_

@@ -5,12 +5,15 @@ The zcpointer library is a specialization of
 references. The goal is to allow C++ developers to write programs without _ever_ having a pointer
 that is not automatically managed by a smart scoper.
 
-The library provides two types to do this:
+The library provides three types to do this:
 
 - `zc::owned<T>` provides an identical interface to `std::unique_ptr<T>`, but which can track outstanding
   weak references.
 - `zc::ref<T>` is the return value of `zc::owned<T>::get()`. It stands for a `T*` but is used to
   ensure use-after-free does not occur.
+- `zc::member<T>` is used to wrap member or local variables that should be constructed in-place, but
+  which may have pointers-to vended out to other objects. This overloads `zc::member<T>::operator&`
+  to return a `zc::ref<T>` when taking the address.
 
 To achieve zero-cost, the zcpointer library can be compiled with or without the
 `ZCPOINTER_TRACK_REFS` option. When disabled, `zc::owned` is just a type alias for `std::unique_ptr`
