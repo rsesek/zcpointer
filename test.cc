@@ -169,7 +169,7 @@ void TestStack() {
     zc::member<C> c;
     rc = &c;
     EXPECT(rc == &c);
-    c->DoThing();
+    c.DoThing();
   }
   EXPECT_UAF(rc->DoThing());
 }
@@ -189,6 +189,12 @@ void TestMember() {
   }
   EXPECT_UAF(ref->DoThing());
   EXPECT_UAF(vec_ref->at(1).DoThing());
+
+  {
+    zc::member<X> x("foo bar");
+    ref = x.c();
+  }
+  EXPECT_UAF(ref->DoThing());
 }
 
 #define TEST_FUNC(fn) { #fn , Test##fn }

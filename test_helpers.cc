@@ -25,10 +25,10 @@ X::X(const char* v) : foo_(v) {}
 X::~X() {}
 
 size_t X::GetCount() const {
-  return vec_c_->size();
+  return vec_c_.size();
 }
 
 std::string X::DoString() {
-  vec_c_->push_back(C());
+  vec_c_.push_back(C());
   return foo_;
 }

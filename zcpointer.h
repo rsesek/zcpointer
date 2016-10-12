@@ -34,24 +34,39 @@ template <typename T> class ref;
 
 namespace internal {
 
+enum class OwnershipBehavior {
+  DELETE_POINTER,
+  BORROW_POINTER,
+};
+
 template <typename T>
 class OwnedPtrDeleter {
  public:
-  OwnedPtrDeleter() {}
+  OwnedPtrDeleter() : refs_(), behavior_(OwnershipBehavior::DELETE_POINTER) {}
   ~OwnedPtrDeleter() {}
 
-  OwnedPtrDeleter(OwnedPtrDeleter&& other) : refs_(std::move(other.refs_)) {
+  explicit OwnedPtrDeleter(OwnershipBehavior behavior)
+      : refs_(),
+        behavior_(behavior) {
+  }
+
+  OwnedPtrDeleter(OwnedPtrDeleter&& other)
+      : refs_(std::move(other.refs_)),
+        behavior_(other.behavior_) {
   }
 
   void operator=(const OwnedPtrDeleter& o) {
     refs_ = o.refs_;
+    behavior_ = o.behavior_;
   }
 
   void operator()(T* t) const {
     for (auto& ref : refs_) {
       ref->MarkDeleted();
     }
-    delete t;
+    if (behavior_ == OwnershipBehavior::DELETE_POINTER) {
+      delete t;
+    }
   }
 
  protected:
@@ -67,6 +82,7 @@ class OwnedPtrDeleter {
 
  private:
   std::forward_list<ref<T>*> refs_;
+  OwnershipBehavior behavior_;
 };
 
 void RaiseUseAfterFree(const char* error) __attribute__((noreturn));
@@ -171,27 +187,18 @@ class ref {
 };
 
 template <typename T>
-class member {
+class member : public T {
  public:
-  template <typename... Args>
-  explicit member(Args&&... args)
-    : t_(new T(std::forward<Args>(args)...)) {
-  }
+  using T::T;
 
   ref<T> operator&() {
-    return t_.get();
-  }
-
-  T* operator->() {
-    return t_.operator->();
-  }
-
-  const T* operator->() const {
-    return t_.operator->();
+    return ptr_.get();
   }
 
  private:
-  owned<T> t_;
+  owned<T> ptr_ = owned<T>(this,
+                           internal::OwnedPtrDeleter<T>(
+                               internal::OwnershipBehavior::BORROW_POINTER));
 };
 
 #else
@@ -203,18 +210,7 @@ template <typename T>
 using ref = T*;
 
 template <typename T>
-class member : public T {
- public:
-  using T::T;
-
-  T* operator->() {
-    return this;
-  }
-
-  const T* operator->() const {
-    return this;
-  }
-};
+using member = T;
 
 #endif
 
