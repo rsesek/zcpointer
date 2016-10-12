@@ -63,10 +63,13 @@ void TestReset() {
 template <typename T>
 void TestUnwrap() {
   zc::owned<T> t(new T());
-  //T* unwrap = t.get();
+  T* unwrap = t.get();
 
   zc::ref<T> ref = t.get();
   T* unwrap2 = ref;
+
+  zc::member<T> tm;
+  T* tp = &tm;
 }
 
 void TestMove() {
