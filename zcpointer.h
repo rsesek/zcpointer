@@ -85,7 +85,7 @@ class OwnedPtrDeleter {
   OwnershipBehavior behavior_;
 };
 
-void RaiseUseAfterFree(const char* error) __attribute__((noreturn));
+void RaiseUseAfterFree() __attribute__((noreturn));
 
 }  // namespace internal
 
@@ -171,7 +171,7 @@ class ref {
  private:
   void CheckDeleted() const {
     if (IsDeleted()) {
-      internal::RaiseUseAfterFree("attempt to access deleted pointer");
+      internal::RaiseUseAfterFree();
     }
   }
 

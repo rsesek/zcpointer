@@ -19,8 +19,8 @@
 namespace zc {
 namespace internal {
 
-void RaiseUseAfterFree(const char* error) {
-  throw zc::UseAfterFreeError(error);
+void RaiseUseAfterFree() {
+  throw zc::UseAfterFreeError("attempt to access deleted pointer");
 }
 
 }  // namespace internal
