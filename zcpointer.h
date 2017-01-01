@@ -42,31 +42,34 @@ enum class OwnershipBehavior {
 template <typename T>
 class OwnedPtrDeleter {
  public:
-  OwnedPtrDeleter() : refs_(), behavior_(OwnershipBehavior::DELETE_POINTER) {}
+  OwnedPtrDeleter()
+      : refs_(),
+        finalizer_(&OwnedPtrDeleter<T>::HandleDeletePointer) {}
+
   ~OwnedPtrDeleter() {}
 
   explicit OwnedPtrDeleter(OwnershipBehavior behavior)
       : refs_(),
-        behavior_(behavior) {
+        finalizer_(behavior == OwnershipBehavior::BORROW_POINTER
+                       ? &OwnedPtrDeleter<T>::HandleBorrowPointer
+                       : &OwnedPtrDeleter<T>::HandleDeletePointer) {
   }
 
   OwnedPtrDeleter(OwnedPtrDeleter&& other)
       : refs_(std::move(other.refs_)),
-        behavior_(other.behavior_) {
+        finalizer_(other.finalizer_) {
   }
 
   void operator=(const OwnedPtrDeleter& o) {
     refs_ = o.refs_;
-    behavior_ = o.behavior_;
+    finalizer_ = o.finalizer_;
   }
 
   void operator()(T* t) const {
     for (auto& ref : refs_) {
       ref->MarkDeleted();
     }
-    if (behavior_ == OwnershipBehavior::DELETE_POINTER) {
-      delete t;
-    }
+    (this->finalizer_)(t);
   }
 
  protected:
@@ -80,9 +83,15 @@ class OwnedPtrDeleter {
     refs_.remove(ref);
   }
 
+  static void HandleDeletePointer(T* t) {
+    delete t;
+  }
+
+  static void HandleBorrowPointer(T* t) {}
+
  private:
+  void (*finalizer_)(T*);
   std::forward_list<ref<T>*> refs_;
-  OwnershipBehavior behavior_;
 };
 
 void RaiseUseAfterFree() __attribute__((noreturn));
